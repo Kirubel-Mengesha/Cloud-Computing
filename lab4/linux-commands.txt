@@ -1,0 +1,13 @@
+cp ~/Downloads/new-key-for-computer-server-1.pem ~/.ssh/
+
+chmod 400 ~/.ssh/new-key-for-computer-server-1.pem
+
+ssh -i ~/.ssh/new-key-for-computer-server-1.pem ec2-user@3.85.185.166
+
+ Install `git`: sudo yum install git -y
+
+- Download `NodeJS`: curl -sL https://rpm.nodesource.com/setup_20.x | sudo bash -
+
+- Install `NodeJS`: sudo yum install nodejs -y
+
+- Install `PM2`: sudo npm install -g pm2
