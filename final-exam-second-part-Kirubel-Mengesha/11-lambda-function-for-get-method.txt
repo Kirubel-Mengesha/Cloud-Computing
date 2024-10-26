@@ -1,0 +1,83 @@
+import { DynamoDBClient, QueryCommand } from "@aws-sdk/client-dynamodb";
+import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+
+const dynamoDB = new DynamoDBClient({ region: "us-east-1" });
+const s3 = new S3Client({ region: "us-east-1" });
+const DYNAMODB_TABLE_NAME = "user-117574";
+const BUCKET_NAME = "image-bucket-backend-117574";
+
+export const handler = async (event) => {
+  try {
+    // Get email from query string parameters
+    const email = event.queryStringParameters.email;
+
+    if (!email) {
+      return {
+        statusCode: 400,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET',
+          'Access-Control-Allow-Headers': 'Content-Type',
+        },
+        body: JSON.stringify({ error: "Email query parameter is required" }),
+      };
+    }
+
+    // Query the DynamoDB table to get data based on email
+    const params = {
+      TableName: DYNAMODB_TABLE_NAME,
+      KeyConditionExpression: "email = :email",
+      ExpressionAttributeValues: {
+        ":email": { S: email },
+      },
+    };
+
+    const data = await dynamoDB.send(new QueryCommand(params));
+
+    // Transform the DynamoDB response to include URLs for each image
+    const parsedItems = await Promise.all(
+      data.Items.map(async (item) => {
+        // Extract the filename from the DynamoDB item
+        const imageFileName = item.imageFileName.S;
+
+        // Generate a pre-signed URL for each image
+        const getObjectParams = {
+          Bucket: BUCKET_NAME,
+          Key: imageFileName,
+        };
+
+        const imageUrl = await getSignedUrl(s3, new GetObjectCommand(getObjectParams), { expiresIn: 3600 }); // URL valid for 1 hour
+
+        return {
+          email: item.email.S,
+          imageFileName: imageFileName,
+          dateTime: item.dateTime.S,
+          url: imageUrl, // Add URL to each item
+        };
+      })
+    );
+
+    // Return the parsed data with URLs
+    return {
+      statusCode: 200,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET',
+        'Access-Control-Allow-Headers': 'Content-Type',
+      },
+      body: JSON.stringify(parsedItems), // Send only the simplified data with URLs
+    };
+  } catch (error) {
+    console.error("Error querying data:", error);
+    return {
+      statusCode: 500,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET',
+        'Access-Control-Allow-Headers': 'Content-Type',
+      },
+      body: JSON.stringify({ error: error.message }),
+    };
+  }
+};
