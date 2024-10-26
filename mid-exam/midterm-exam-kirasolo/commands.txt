@@ -1,0 +1,18 @@
+1. Install mysql
+sudo yum install -y https://dev.mysql.com/get/mysql57-community-release-el7-11.noarch.rpm
+2. Install mysql-client
+sudo yum install -y mysql-community-client
+3. If you get a GPG error, run the command below and then run the above command again: 
+sudo rpm --import https://repo.mysql.com/RPM-GPG-KEY-mysql-2022
+4. Create Table
+use your-database;
+CREATE TABLE person (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(100) NOT NULL,
+    age INT NOT NULL
+);
+5. Insert Data
+INSERT INTO person (name, age) 
+VALUES 
+    ('Michael', 22),
+    ('John', 32);
